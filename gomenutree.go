@@ -175,9 +175,9 @@ func (m *MenuTree) render() {
 		}
 	}
 	lines = append(lines, "")
-	lines = append(lines, fmt.Sprintf("%c select, %c/enter/%s choose ", upDownArrow, rightArrow, chalk.Underline.TextStyle("a")))
+	lines = append(lines, fmt.Sprintf(" %c select, %c/enter/%s choose ", upDownArrow, rightArrow, chalk.Underline.TextStyle("a")))
 	if m.previousMenu != nil {
-		lines = append(lines, fmt.Sprintf("%c/esc back to %s, E%sit", leftArrow, m.previousMenu.name, chalk.Underline.TextStyle("x")))
+		lines = append(lines, fmt.Sprintf(" %c/esc back to %s, E%sit ", leftArrow, m.previousMenu.name, chalk.Underline.TextStyle("x")))
 	} else {
 		lines = append(lines, fmt.Sprintf("E%sit", chalk.Underline.TextStyle("x")))
 	}
@@ -299,13 +299,13 @@ func (m *MenuTree) execute(index int) {
 			fmt.Println()
 			m.render()
 		} else {
-			fmt.Println("Error, function not found in Options map.")
+			fmt.Println("\nError, function not found in Options map.")
 			fmt.Println("(Press any key to continue)")
 		}
 	} else {
 		subIndex := index - len(m.currentMenu.optionsOrder)
 		if smm, ok := m.subMenuMap[m.currentMenu]; !ok {
-			fmt.Println("Error, menu not found in subMenu map.")
+			fmt.Println("\nError, menu not found in subMenu map.")
 			fmt.Println("(Press any key to continue)")
 			m.currentMenu.lastRenderLines += 2
 			m.getInput()
@@ -314,7 +314,7 @@ func (m *MenuTree) execute(index int) {
 			if subIndex >= 0 && subIndex < len(smm) {
 				m.ChangeMenu(smm[subIndex])
 			} else {
-				fmt.Println("Error, function not found in Options map.")
+				fmt.Println("\nError, function not found in Options map.")
 				fmt.Println("(Press any key to continue)")
 				m.currentMenu.lastRenderLines += 2
 				m.getInput()
