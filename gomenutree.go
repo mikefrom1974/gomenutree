@@ -18,13 +18,14 @@ type (
 	}
 
 	Menu struct {
-		name         string
-		prompt       string
-		options      map[string]func()
-		optionsOrder []string
-		selection    int
-		hotKeys      map[string]int
-		lastRender   int
+		name            string
+		prompt          string
+		options         map[string]func()
+		optionsOrder    []string
+		selection       int
+		hotKeys         map[string]int
+		lastRenderLines int
+		longestLine     int
 	}
 )
 
@@ -124,15 +125,15 @@ func (m *MenuTree) ChangeMenu(menu *Menu) {
 		m.previousMenu = nil
 	}
 	m.currentMenu = menu
-	m.currentMenu.lastRender = 0
+	m.currentMenu.lastRenderLines = 0
 	if m.displaying {
 		m.render()
 	}
 }
 
 func (m *MenuTree) render() {
-	if m.currentMenu.lastRender > 0 {
-		fmt.Printf("\033[%dA", m.currentMenu.lastRender)
+	if m.currentMenu.lastRenderLines > 0 {
+		fmt.Printf("\033[%dA", m.currentMenu.lastRenderLines)
 	}
 	var lines []string
 	m.currentMenu.hotKeys = make(map[string]int)
@@ -180,21 +181,21 @@ func (m *MenuTree) render() {
 	} else {
 		lines = append(lines, fmt.Sprintf("E%sit", chalk.Underline.TextStyle("x")))
 	}
-	maxLength := 0
+	m.currentMenu.longestLine = 0
 	for _, l := range lines {
-		if len(l) > maxLength {
-			maxLength = len(l)
+		if len(l) > m.currentMenu.longestLine {
+			m.currentMenu.longestLine = len(l)
 		}
 	}
-	maxLength += 2
-	m.currentMenu.lastRender = len(lines) + 1
+	m.currentMenu.longestLine += 2
+	m.currentMenu.lastRenderLines = len(lines) + 1
 	header := "\n"
-	for i := 0; i < maxLength+4; i++ {
+	for i := 0; i < m.currentMenu.longestLine+4; i++ {
 		header += "*"
 	}
 	fmt.Println(header)
 	for idx, l := range lines {
-		fillLength := maxLength - len(l)
+		fillLength := m.currentMenu.longestLine - len(l)
 		if idx < len(lines)-1 {
 			l = "  " + l + "\n"
 			fmt.Print(l)
@@ -265,13 +266,34 @@ func (m *MenuTree) Display() {
 func (m *MenuTree) execute(index int) {
 	if index >= 0 && index < len(m.currentMenu.optionsOrder) {
 		fmt.Printf("\033[%dA", 2)
-		m.currentMenu.lastRender = 0
+		m.currentMenu.lastRenderLines = 0
 		fName := m.currentMenu.optionsOrder[index]
-		fmt.Printf("\n** Executing %s... *****\n", fName)
+		line := fmt.Sprintf("\n*** Executing %s... ***", fName)
+		fill := m.currentMenu.longestLine - len(line)
+		if fill > 0 {
+			for i := 0; i < fill; i++ {
+				line += "*"
+			}
+		}
+		fmt.Println(line)
 		if f, ok := m.currentMenu.options[fName]; ok {
-			fmt.Println("------------- Output -------------")
+			line = "------------- Output -------------"
+			fill = m.currentMenu.longestLine - len(line)
+			if fill > 0 {
+				for i := 0; i < fill; i++ {
+					line += "-"
+				}
+			}
+			fmt.Println(line)
 			f()
-			fmt.Println("-------------- End ---------------")
+			line = "-------------- End ---------------"
+			fill = m.currentMenu.longestLine - len(line)
+			if fill > 0 {
+				for i := 0; i < fill; i++ {
+					line += "-"
+				}
+			}
+			fmt.Println(line)
 			fmt.Println("(Press any key to continue)")
 			m.getInput()
 			fmt.Println()
@@ -285,7 +307,7 @@ func (m *MenuTree) execute(index int) {
 		if smm, ok := m.subMenuMap[m.currentMenu]; !ok {
 			fmt.Println("Error, menu not found in subMenu map.")
 			fmt.Println("(Press any key to continue)")
-			m.currentMenu.lastRender += 2
+			m.currentMenu.lastRenderLines += 2
 			m.getInput()
 			m.render()
 		} else {
@@ -294,7 +316,7 @@ func (m *MenuTree) execute(index int) {
 			} else {
 				fmt.Println("Error, function not found in Options map.")
 				fmt.Println("(Press any key to continue)")
-				m.currentMenu.lastRender += 2
+				m.currentMenu.lastRenderLines += 2
 				m.getInput()
 				m.render()
 			}
