@@ -256,6 +256,7 @@ func (m *MenuTree) Display() {
 			}
 		default:
 			if i, ok := m.currentMenu.hotKeys[input]; ok {
+				m.currentMenu.selection = i
 				m.execute(i)
 			}
 		}

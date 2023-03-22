@@ -78,3 +78,12 @@ func p(param string) {
 # Change Log _(semantic versioning)_
 **1.0.0**
 * *Added*: Initial release
+
+**1.0.1**
+* *Fixed*: incomplete line fill on redraw
+
+**1.0.2**
+* *Fixed*: typos
+
+**1.0.3**
+* *Changed*: selecting by hotkey now moves selection cursor
