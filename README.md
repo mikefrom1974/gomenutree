@@ -3,16 +3,16 @@ Simple CLI menu to map nested menu options to functions
 
 # Usage
 * Import the package <br />
-  `import "github.com/mikefrom1974/gomenutree`
+  `import "github.com/mikefrom1974/gomenutree"`
 * Create your menu(s) <br />
-  `mMain := gomenutree.NewMenu("Main")`
+  `mMain := gomenutree.NewMenu("Main", "myPrompt")`
 * Add options -> functions <br />
   `mMain.AddOption("foo", foo)`
 * Create your tree and add menus <br />
   `mTree := gomenutree.NewMenuTree(mMain)` <br />
   `mTree.AddSubMenu(<parentMenu>, <childMenu>)`
 * Display your menu<br />
-  `mTree.Display`
+  `mTree.Display()`
 * Optionally set the current menu prompt <br />
   `mTree.SetPrompt("Please select one of the following:")`
 

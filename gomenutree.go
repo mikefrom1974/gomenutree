@@ -264,15 +264,17 @@ func (m *MenuTree) Display() {
 
 func (m *MenuTree) execute(index int) {
 	if index >= 0 && index < len(m.currentMenu.optionsOrder) {
+		fmt.Printf("\033[%dA", 2)
 		m.currentMenu.lastRender = 0
 		fName := m.currentMenu.optionsOrder[index]
-		fmt.Printf("\nExecuting %s...\n", fName)
+		fmt.Printf("\n** Executing %s... *****\n", fName)
 		if f, ok := m.currentMenu.options[fName]; ok {
 			fmt.Println("------------- Output -------------")
 			f()
 			fmt.Println("-------------- End ---------------")
 			fmt.Println("(Press any key to continue)")
 			m.getInput()
+			fmt.Println()
 			m.render()
 		} else {
 			fmt.Println("Error, function not found in Options map.")
