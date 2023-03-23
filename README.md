@@ -36,17 +36,17 @@ import (
 func main() {
 	prompt := "Please select from the following:"
 	
-	mMain := gomenutree.NewMenu("test main", prompt)
+	mMain := gomenutree.NewMenu("test main", prompt, nil)
 	mMain.AddOption("foo", foo)
 	mMain.AddOption("bar", bar)
 
 	mTree := gomenutree.NewMenuTree(mMain)
 
-	mSub1 := gomenutree.NewMenu("simple sub", "")
+	mSub1 := gomenutree.NewMenu("simple sub", "", nil)
 	mSub1.AddOption("baz", baz)
 	mTree.AddSubMenu(mMain, mSub1)
 
-	mSub2 := gomenutree.NewMenu("func w param", prompt)
+	mSub2 := gomenutree.NewMenu("func w param", prompt, nil)
 	mSub2.AddOption("enter", func() {
 		p("staticParam")
 	})
