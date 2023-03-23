@@ -178,7 +178,6 @@ func (m *MenuTree) render() {
 		}
 	}
 	lines = append(lines, "")
-	lines = append(lines, fmt.Sprintf(" %c select, %c/enter/%s choose ", upDownArrow, rightArrow, chalk.Underline.TextStyle("a")))
 	if m.previousMenu != nil {
 		lines = append(lines, fmt.Sprintf(" %c/esc back to %s, E%sit ", leftArrow, m.previousMenu.name, chalk.Underline.TextStyle("x")))
 	} else {
@@ -219,7 +218,17 @@ func (m *MenuTree) Display() {
 	defer func() {
 		fmt.Printf("\033[?25h")
 	}()
+	redrawPrevious := m.Redraw
+	m.Redraw = false
+	fmt.Println("Welcome to go menu tree.")
+	fmt.Printf("%c to move selection cursor.\n", upDownArrow)
+	fmt.Printf("%c/Enter/H%stkey to choose.\n", rightArrow, chalk.Underline.TextStyle("o"))
+	fmt.Printf("%c/Esc to go back, %s to Exit.\n", leftArrow, chalk.Underline.TextStyle("x"))
+	fmt.Println("` (backtick) to toggle redraw (small terminals may scramble)")
+	fmt.Println("Press any key to start menu...")
+	m.getInput()
 	m.render()
+	m.Redraw = redrawPrevious
 	fmt.Printf("\033[?25l")
 	for m.displaying {
 		input := strings.ToUpper(m.getInput())
