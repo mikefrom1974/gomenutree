@@ -15,6 +15,8 @@ type (
 		previousMenu *Menu
 		subMenuMap   map[*Menu][]*Menu
 		displaying   bool
+
+		Redraw bool //whether to back up and redraw the menu in place
 	}
 
 	Menu struct {
@@ -30,12 +32,15 @@ type (
 )
 
 const (
-	up     byte = 65
-	down   byte = 66
-	left   byte = 68
-	right  byte = 67
-	escape byte = 27
-	enter  byte = 13
+	up       byte = 65 // arrow keys are the last byte of a 3 byte sequence
+	down     byte = 66
+	left     byte = 68
+	right    byte = 67
+	escape   byte = 27
+	enter    byte = 13
+	backtick byte = 96
+	exitX    byte = 120
+	ctrlC    byte = 3
 
 	upDownArrow = '\u2195'
 	leftArrow   = '\u2190'
@@ -46,6 +51,7 @@ func NewMenuTree(homeMenu *Menu) *MenuTree {
 	m := new(MenuTree)
 	m.homeMenu = homeMenu
 	m.currentMenu = homeMenu
+	m.Redraw = true
 	m.subMenuMap = make(map[*Menu][]*Menu)
 	return m
 }
@@ -68,9 +74,6 @@ func (m *MenuTree) Prompt() string {
 
 func (m *MenuTree) SetPrompt(prompt string) {
 	m.currentMenu.prompt = prompt
-	if m.displaying {
-		m.render()
-	}
 }
 
 func (m *Menu) AddOption(name string, function func()) {
@@ -132,7 +135,7 @@ func (m *MenuTree) ChangeMenu(menu *Menu) {
 }
 
 func (m *MenuTree) render() {
-	if m.currentMenu.lastRenderLines > 0 {
+	if m.currentMenu.lastRenderLines > 0 && m.Redraw {
 		fmt.Printf("\033[%dA", m.currentMenu.lastRenderLines)
 	}
 	var lines []string
@@ -246,9 +249,19 @@ func (m *MenuTree) Display() {
 			if m.previousMenu != nil {
 				m.ChangeMenu(m.previousMenu)
 			}
+		case "TOGGLE":
+			if m.Redraw {
+				m.Redraw = false
+				fmt.Println("\nredraw disabled")
+				m.render()
+			} else {
+				fmt.Println("\nredraw enabled")
+				m.render()
+				m.Redraw = true
+			}
 		case "":
 		//do nothing
-		case "X":
+		case "EXIT":
 			if i, ok := m.currentMenu.hotKeys[input]; !ok {
 				m.displaying = false
 			} else {
@@ -266,7 +279,9 @@ func (m *MenuTree) Display() {
 
 func (m *MenuTree) execute(index int) {
 	if index >= 0 && index < len(m.currentMenu.optionsOrder) {
-		fmt.Printf("\033[%dA", 2)
+		if m.Redraw {
+			fmt.Printf("\033[%dA", 2)
+		}
 		m.currentMenu.lastRenderLines = 0
 		fName := m.currentMenu.optionsOrder[index]
 		line := fmt.Sprintf("\n*** Executing %s... ***", fName)
@@ -374,6 +389,10 @@ func (m *MenuTree) getInput() string {
 				return "ENTER"
 			case escape:
 				return "BACK"
+			case backtick:
+				return "TOGGLE"
+			case exitX, ctrlC:
+				return "EXIT"
 			default:
 				return string(bb[0])
 			}
