@@ -9,6 +9,7 @@ import (
 )
 
 type (
+	// MenuTree serves as the main structure, holding menus and submenus along with configuration
 	MenuTree struct {
 		homeMenu     *Menu
 		currentMenu  *Menu
@@ -19,9 +20,11 @@ type (
 		Redraw bool //whether to back up and redraw the menu in place
 	}
 
+	// Menu struct holds the map of options to functions, as well as configuration
 	Menu struct {
 		name            string
 		prompt          string
+		promptFunction  func() string
 		options         map[string]func()
 		optionsOrder    []string
 		selection       int
@@ -47,6 +50,7 @@ const (
 	rightArrow  = '\u2192'
 )
 
+// NewMenuTree will create and return a new go menu tree. This will be the main object used by the user.
 func NewMenuTree(homeMenu *Menu) *MenuTree {
 	m := new(MenuTree)
 	m.homeMenu = homeMenu
@@ -56,26 +60,47 @@ func NewMenuTree(homeMenu *Menu) *MenuTree {
 	return m
 }
 
-func NewMenu(name string, prompt string) *Menu {
+// NewMenu will create a new Menu object (to be used as the main menu in NewMenuTree or as a submenu).
+// prompt and promptFunction are mutually exclusive with promptFunction taking priority if not nil
+// prompt function must take no parameters and return a string
+func NewMenu(name string, prompt string, promptFunction func() string) *Menu {
 	m := new(Menu)
 	m.name = name
-	m.prompt = prompt
+	if promptFunction != nil {
+		m.prompt = ""
+		m.promptFunction = promptFunction
+	} else {
+		m.prompt = prompt
+		m.promptFunction = nil
+	}
 	m.options = make(map[string]func())
 	return m
 }
 
+// Name will return the name of the current menu (not exposed since menu names can not be changed)
 func (m *MenuTree) Name() string {
 	return m.currentMenu.name
 }
 
+// Prompt will return the prompt for the current menu
 func (m *MenuTree) Prompt() string {
 	return m.currentMenu.prompt
 }
 
-func (m *MenuTree) SetPrompt(prompt string) {
-	m.currentMenu.prompt = prompt
+// SetPrompt will set a static text prompt, or a function to generate the prompt on render, for the current menu
+// prompt and promptFunction are mutually exclusive with promptFunction taking priority if not nil
+// prompt function must take no parameters and return a string
+func (m *MenuTree) SetPrompt(prompt string, promptFunction func() string) {
+	if promptFunction != nil {
+		m.currentMenu.prompt = ""
+		m.currentMenu.promptFunction = promptFunction
+	} else {
+		m.currentMenu.prompt = prompt
+		m.currentMenu.promptFunction = nil
+	}
 }
 
+// AddOption will add a named option to the list of menu selections, mapped to a function
 func (m *Menu) AddOption(name string, function func()) {
 	m.options[name] = function
 	for i, n := range m.optionsOrder {
@@ -86,6 +111,7 @@ func (m *Menu) AddOption(name string, function func()) {
 	m.optionsOrder = append(m.optionsOrder, name)
 }
 
+// DeleteOption will remove an option from the list of menu selections
 func (m *Menu) DeleteOption(name string) {
 	delete(m.options, name)
 	for i, n := range m.optionsOrder {
@@ -95,6 +121,7 @@ func (m *Menu) DeleteOption(name string) {
 	}
 }
 
+// AddSubMenu will add the child menu to the list of submenu selections in the parent menu
 func (m *MenuTree) AddSubMenu(parentMenu *Menu, childMenu *Menu) {
 	if _, ok := m.subMenuMap[parentMenu]; !ok {
 		m.subMenuMap[parentMenu] = []*Menu{childMenu}
@@ -103,6 +130,7 @@ func (m *MenuTree) AddSubMenu(parentMenu *Menu, childMenu *Menu) {
 	}
 }
 
+// AddSubMenus will add a slice of menus to the list of submenu selections in the parent menu
 func (m *MenuTree) AddSubMenus(parentMenu *Menu, childMenus []*Menu) {
 	if _, ok := m.subMenuMap[parentMenu]; !ok {
 		m.subMenuMap[parentMenu] = childMenus
@@ -111,6 +139,7 @@ func (m *MenuTree) AddSubMenus(parentMenu *Menu, childMenus []*Menu) {
 	}
 }
 
+// DeleteSubMenu will remove the menu from the list of submenu selections in the parent menu
 func (m *MenuTree) DeleteSubMenu(parentMenu *Menu, childMenu *Menu) {
 	if _, ok := m.subMenuMap[parentMenu]; ok {
 		for i, sm := range m.subMenuMap[parentMenu] {
@@ -122,6 +151,7 @@ func (m *MenuTree) DeleteSubMenu(parentMenu *Menu, childMenu *Menu) {
 	}
 }
 
+// ChangeMenu will jump straight to the given menu, setting the current menu to the "back" action result
 func (m *MenuTree) ChangeMenu(menu *Menu) {
 	m.previousMenu = m.currentMenu
 	if menu == m.homeMenu {
@@ -134,6 +164,7 @@ func (m *MenuTree) ChangeMenu(menu *Menu) {
 	}
 }
 
+// render will draw the current menu, optionally redrawing (erasing and writing over itself)
 func (m *MenuTree) render() {
 	if m.currentMenu.lastRenderLines > 0 && m.Redraw {
 		fmt.Printf("\033[%dA", m.currentMenu.lastRenderLines)
@@ -141,6 +172,9 @@ func (m *MenuTree) render() {
 	var lines []string
 	m.currentMenu.hotKeys = make(map[string]int)
 	lines = append(lines, fmt.Sprintf("Menu: %s", chalk.Bold.TextStyle(m.currentMenu.name)))
+	if m.currentMenu.promptFunction != nil {
+		m.currentMenu.prompt = m.currentMenu.promptFunction()
+	}
 	if m.currentMenu.prompt != "" {
 		m.currentMenu.prompt = strings.Replace(m.currentMenu.prompt, "\r\n", "\n", -1)
 		m.currentMenu.prompt = strings.Replace(m.currentMenu.prompt, "\n\r", "\n", -1)
@@ -212,6 +246,7 @@ func (m *MenuTree) render() {
 	}
 }
 
+// Display will initiate the menu tree (after initial config) and render the current menu
 func (m *MenuTree) Display() {
 	m.displaying = true
 	m.currentMenu.selection = 0
@@ -286,6 +321,7 @@ func (m *MenuTree) Display() {
 	fmt.Println()
 }
 
+// execute will act on an option > function selection or go into a submenu, depending on selection
 func (m *MenuTree) execute(index int) {
 	if index >= 0 && index < len(m.currentMenu.optionsOrder) {
 		if m.Redraw {
@@ -349,6 +385,7 @@ func (m *MenuTree) execute(index int) {
 	}
 }
 
+// assignHotKey handles auto-creating hotkeys for named entries, while avoiding duplication
 func (m *Menu) assignHotkey(name string, index int) (hotkey string) {
 	for _, ch := range strings.Split(name, "") {
 		uch := strings.ToUpper(ch)
@@ -363,6 +400,7 @@ func (m *Menu) assignHotkey(name string, index int) (hotkey string) {
 	return ""
 }
 
+// getInput will listen for a single keystroke (for navigating the menu)
 func (m *MenuTree) getInput() string {
 	tty, tErr := term.Open("/dev/tty")
 	if tErr != nil {

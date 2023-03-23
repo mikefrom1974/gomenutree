@@ -90,3 +90,7 @@ func p(param string) {
 
 **1.0.4**
 * *Fixed*: redraw scrambles on small terminals (added toggle)
+
+**1.1.0**
+* *Added*: ability to assign function to generate prompt
+
