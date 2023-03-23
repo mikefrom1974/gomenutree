@@ -88,5 +88,5 @@ func p(param string) {
 **1.0.3**
 * *Changed*: selecting by hotkey now moves selection cursor
 
-* **1.0.4**
+**1.0.4**
 * *Fixed*: redraw scrambles on small terminals (added toggle)
